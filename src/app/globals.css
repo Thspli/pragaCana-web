@@ -40,3 +40,58 @@ a {
     color-scheme: dark;
   }
 }
+/* Em globals.css */
+
+/* [NOVO] Adiciona um efeito de hover nos polígonos dos talhões */
+.leaflet-interactive {
+  cursor: pointer;
+  transition: fill-opacity 0.2s ease;
+}
+
+.leaflet-interactive:hover {
+  /* Aumenta a opacidade no hover. O !important é 
+     necessário para sobrepor o estilo inline do Leaflet. */
+  fill-opacity: 0.6 !important;
+}
+/* Em globals.css */
+
+/* ... (Mantenha os estilos de .leaflet-interactive se estiver usando) ... */
+
+/* [NOVO] Estilo para a etiqueta (rótulo) do Talhão */
+.talhao-label div {
+  /* A caixa da etiqueta */
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 2px solid; /* A cor será definida inline pelo style="" */
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  
+  /* Layout do texto */
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* Texto */
+  color: #14532d; /* Verde escuro */
+  text-align: center;
+  white-space: nowrap;
+}
+
+.talhao-label strong {
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.talhao-label span {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* [MUITO IMPORTANTE] Faz o rótulo ser "transparente" a cliques */
+.leaflet-div-icon.talhao-label {
+  pointer-events: none;
+  background-color: transparent;
+  border: none;
+}
