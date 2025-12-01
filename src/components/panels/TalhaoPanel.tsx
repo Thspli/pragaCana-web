@@ -14,7 +14,8 @@ import {
   Download,
   Edit,
   Trash2,
-  AlertTriangle
+  Save,
+  XCircle
 } from "lucide-react";
 import { Talhao } from "../../hooks/useTalhoes";
 
@@ -25,6 +26,18 @@ interface TalhaoPanelProps {
 
 export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
   const [activeTab, setActiveTab] = useState<"info" | "graficos" | "relatorios">("info");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedNome, setEditedNome] = useState("");
+  const [editedStatus, setEditedStatus] = useState<"baixo" | "medio" | "alto" | "critico">("baixo");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Inicializa valores de edição quando abre o modo de edição
+  React.useEffect(() => {
+    if (talhao && isEditing) {
+      setEditedNome(talhao.nome);
+      setEditedStatus(talhao.status || "baixo");
+    }
+  }, [talhao, isEditing]);
 
   if (!talhao) return null;
 
@@ -43,7 +56,71 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
     }
   };
 
-  const statusInfo = getStatusColor(talhao.status);
+  const statusInfo = getStatusColor(isEditing ? editedStatus : talhao.status);
+
+  // Função para editar talhão
+  const handleEdit = async () => {
+    if (!editedNome.trim()) {
+      alert("⚠️ O nome não pode estar vazio!");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3333/talhoes/${talhao.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nome: editedNome,
+          status: editedStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao atualizar talhão");
+      }
+
+      alert("✅ Talhão atualizado com sucesso!");
+      setIsEditing(false);
+      
+      // Recarrega a página para atualizar os dados
+      window.location.reload();
+    } catch (error) {
+      console.error("Erro ao editar talhão:", error);
+      alert("❌ Erro ao atualizar talhão. Verifique o backend.");
+    }
+  };
+
+  // Função para deletar talhão
+  const handleDelete = async () => {
+    const confirmacao = window.confirm(
+      `⚠️ ATENÇÃO!\n\nTem certeza que deseja excluir o talhão "${talhao.nome}"?\n\nEsta ação não pode ser desfeita!`
+    );
+
+    if (!confirmacao) return;
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`http://localhost:3333/talhoes/${talhao.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao deletar talhão");
+      }
+
+      alert("✅ Talhão excluído com sucesso!");
+      onClose();
+      
+      // Recarrega a página para atualizar a lista
+      window.location.reload();
+    } catch (error) {
+      console.error("Erro ao deletar talhão:", error);
+      alert("❌ Erro ao excluir talhão. Verifique o backend.");
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -85,16 +162,37 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
             }}
           >
             <div style={{ flex: 1 }}>
-              <h2
-                style={{
-                  fontSize: "1.75rem",
-                  fontWeight: 700,
-                  margin: 0,
-                  marginBottom: "0.5rem",
-                }}
-              >
-                {talhao.nome}
-              </h2>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedNome}
+                  onChange={(e) => setEditedNome(e.target.value)}
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 700,
+                    margin: 0,
+                    marginBottom: "0.5rem",
+                    background: "rgba(255,255,255,0.2)",
+                    border: "2px solid rgba(255,255,255,0.5)",
+                    borderRadius: "0.5rem",
+                    padding: "0.5rem",
+                    color: "white",
+                    width: "100%",
+                  }}
+                  placeholder="Nome do talhão"
+                />
+              ) : (
+                <h2
+                  style={{
+                    fontSize: "1.75rem",
+                    fontWeight: 700,
+                    margin: 0,
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  {talhao.nome}
+                </h2>
+              )}
               <span
                 style={{
                   fontSize: "0.85rem",
@@ -126,23 +224,48 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
           </div>
 
           {/* Status Badge */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem 1.25rem",
-              borderRadius: "0.75rem",
-              fontWeight: 700,
-              fontSize: "0.9rem",
-              background: statusInfo.bg,
-              color: statusInfo.color,
-              border: `2px solid ${statusInfo.color}`,
-            }}
-          >
-            <span style={{ fontSize: "1.2rem" }}>{statusInfo.icon}</span>
-            {statusInfo.label}
-          </div>
+          {isEditing ? (
+            <select
+              value={editedStatus}
+              onChange={(e) => setEditedStatus(e.target.value as any)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.75rem 1.25rem",
+                borderRadius: "0.75rem",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                background: statusInfo.bg,
+                color: statusInfo.color,
+                border: `2px solid ${statusInfo.color}`,
+                cursor: "pointer",
+              }}
+            >
+              <option value="baixo">✅ Baixa Infestação</option>
+              <option value="medio">⚠️ Média Infestação</option>
+              <option value="alto">🔶 Alta Infestação</option>
+              <option value="critico">🚨 Crítica</option>
+            </select>
+          ) : (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.75rem 1.25rem",
+                borderRadius: "0.75rem",
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                background: statusInfo.bg,
+                color: statusInfo.color,
+                border: `2px solid ${statusInfo.color}`,
+              }}
+            >
+              <span style={{ fontSize: "1.2rem" }}>{statusInfo.icon}</span>
+              {statusInfo.label}
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -304,24 +427,46 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
               {/* Ações */}
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  display: "flex",
                   gap: "0.75rem",
                   marginTop: "1rem",
+                  flexDirection: "column",
                 }}
               >
-                <ActionButton
-                  icon={<Edit size={18} />}
-                  label="Editar"
-                  color="#3b82f6"
-                  onClick={() => alert("Editar talhão (em breve)")}
-                />
-                <ActionButton
-                  icon={<Trash2 size={18} />}
-                  label="Excluir"
-                  color="#ef4444"
-                  onClick={() => alert("Excluir talhão (em breve)")}
-                />
+                {isEditing ? (
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <ActionButton
+                      icon={<Save size={18} />}
+                      label="Salvar"
+                      color="#22c55e"
+                      onClick={handleEdit}
+                      fullWidth
+                    />
+                    <ActionButton
+                      icon={<XCircle size={18} />}
+                      label="Cancelar"
+                      color="#6b7280"
+                      onClick={() => setIsEditing(false)}
+                      fullWidth
+                    />
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <ActionButton
+                      icon={<Edit size={18} />}
+                      label="Editar"
+                      color="#3b82f6"
+                      onClick={() => setIsEditing(true)}
+                    />
+                    <ActionButton
+                      icon={<Trash2 size={18} />}
+                      label={isDeleting ? "Excluindo..." : "Excluir"}
+                      color="#ef4444"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -485,31 +630,37 @@ function InfoRow({ label, value, valueColor }: any) {
   );
 }
 
-function ActionButton({ icon, label, color, fullWidth, onClick }: any) {
+function ActionButton({ icon, label, color, fullWidth, onClick, disabled }: any) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         gap: "0.5rem",
         padding: "0.875rem 1.25rem",
-        background: color,
+        background: disabled ? "#9ca3af" : color,
         color: "white",
         border: "none",
         borderRadius: "0.625rem",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: 700,
         fontSize: "0.9rem",
         width: fullWidth ? "100%" : "auto",
         transition: "transform 0.2s",
+        opacity: disabled ? 0.6 : 1,
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
+        if (!disabled) {
+          e.currentTarget.style.transform = "translateY(-2px)";
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
+        if (!disabled) {
+          e.currentTarget.style.transform = "translateY(0)";
+        }
       }}
     >
       {icon}
