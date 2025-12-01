@@ -1,0 +1,537 @@
+"use client";
+
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  X, 
+  MapPin, 
+  Calendar, 
+  Bug, 
+  Target, 
+  TrendingUp,
+  FileText,
+  BarChart3,
+  Download,
+  Edit,
+  Trash2,
+  AlertTriangle
+} from "lucide-react";
+import { Talhao } from "../../hooks/useTalhoes";
+
+interface TalhaoPanelProps {
+  talhao: Talhao | null;
+  onClose: () => void;
+}
+
+export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
+  const [activeTab, setActiveTab] = useState<"info" | "graficos" | "relatorios">("info");
+
+  if (!talhao) return null;
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case "baixo":
+        return { bg: "#dcfce7", color: "#15803d", label: "Baixa Infestação", icon: "✅" };
+      case "medio":
+        return { bg: "#fef3c7", color: "#92400e", label: "Média Infestação", icon: "⚠️" };
+      case "alto":
+        return { bg: "#fed7aa", color: "#9a3412", label: "Alta Infestação", icon: "🔶" };
+      case "critico":
+        return { bg: "#fecaca", color: "#7f1d1d", label: "Crítica", icon: "🚨" };
+      default:
+        return { bg: "#e5e7eb", color: "#374151", label: "Sem Status", icon: "❓" };
+    }
+  };
+
+  const statusInfo = getStatusColor(talhao.status);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          width: "100%",
+          maxWidth: "500px",
+          height: "100vh",
+          background: "white",
+          boxShadow: "-4px 0 20px rgba(0,0,0,0.15)",
+          zIndex: 4000,
+          display: "flex",
+          flexDirection: "column",
+          overflowY: "auto",
+        }}
+      >
+        {/* Header com Gradiente */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #15803d 0%, #22c55e 100%)",
+            padding: "2rem",
+            color: "white",
+            borderBottom: "4px solid #14532d",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: "1rem",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <h2
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 700,
+                  margin: 0,
+                  marginBottom: "0.5rem",
+                }}
+              >
+                {talhao.nome}
+              </h2>
+              <span
+                style={{
+                  fontSize: "0.85rem",
+                  background: "rgba(255,255,255,0.2)",
+                  padding: "0.25rem 0.75rem",
+                  borderRadius: "0.5rem",
+                  fontWeight: 600,
+                }}
+              >
+                ID: #{talhao.id}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                padding: "0.625rem",
+                background: "rgba(255,255,255,0.2)",
+                border: "2px solid rgba(255,255,255,0.3)",
+                borderRadius: "0.625rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+              }}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Status Badge */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              padding: "0.75rem 1.25rem",
+              borderRadius: "0.75rem",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              background: statusInfo.bg,
+              color: statusInfo.color,
+              border: `2px solid ${statusInfo.color}`,
+            }}
+          >
+            <span style={{ fontSize: "1.2rem" }}>{statusInfo.icon}</span>
+            {statusInfo.label}
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div
+          style={{
+            display: "flex",
+            borderBottom: "2px solid #e5e7eb",
+            background: "#f9fafb",
+          }}
+        >
+          {[
+            { id: "info", label: "Informações", icon: MapPin },
+            { id: "graficos", label: "Gráficos", icon: BarChart3 },
+            { id: "relatorios", label: "Relatórios", icon: FileText },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                style={{
+                  flex: 1,
+                  padding: "1rem",
+                  background: isActive ? "white" : "transparent",
+                  border: "none",
+                  borderBottom: isActive ? "3px solid #22c55e" : "3px solid transparent",
+                  cursor: "pointer",
+                  fontWeight: isActive ? 700 : 600,
+                  color: isActive ? "#15803d" : "#6b7280",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  fontSize: "0.9rem",
+                  transition: "all 0.2s",
+                }}
+              >
+                <Icon size={18} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "1.5rem" }}>
+          {/* Tab: Informações */}
+          {activeTab === "info" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+            >
+              {/* Estatísticas Principais */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
+                <StatCard
+                  icon={<MapPin size={24} />}
+                  label="Área Total"
+                  value={`${talhao.area?.toFixed(2) ?? "N/A"} ha`}
+                  color="#3b82f6"
+                />
+                <StatCard
+                  icon={<Bug size={24} />}
+                  label="Total Pragas"
+                  value={talhao.totalPragas ?? 0}
+                  color="#ef4444"
+                />
+                <StatCard
+                  icon={<Target size={24} />}
+                  label="Armadilhas"
+                  value={talhao.armadilhasAtivas ?? 0}
+                  color="#22c55e"
+                />
+                <StatCard
+                  icon={<TrendingUp size={24} />}
+                  label="Densidade"
+                  value={
+                    talhao.area && talhao.totalPragas
+                      ? `${(talhao.totalPragas / talhao.area).toFixed(1)}/ha`
+                      : "N/A"
+                  }
+                  color="#f59e0b"
+                />
+              </div>
+
+              {/* Coordenadas GPS */}
+              <InfoSection title="📍 Coordenadas GPS">
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <InfoRow label="Latitude" value={talhao.center[0].toFixed(6)} />
+                  <InfoRow label="Longitude" value={talhao.center[1].toFixed(6)} />
+                  <InfoRow
+                    label="Perímetro"
+                    value={`${talhao.boundary?.length ?? 0} pontos`}
+                  />
+                </div>
+              </InfoSection>
+
+              {/* Histórico */}
+              <InfoSection title="📅 Histórico">
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <InfoRow
+                    label="Última Coleta"
+                    value={
+                      talhao.ultimaColeta
+                        ? new Date(talhao.ultimaColeta).toLocaleDateString("pt-BR")
+                        : "Sem registro"
+                    }
+                  />
+                  <InfoRow
+                    label="Status Atual"
+                    value={statusInfo.label}
+                    valueColor={statusInfo.color}
+                  />
+                </div>
+              </InfoSection>
+
+              {/* Pragas Detalhadas */}
+              {talhao.pragas && talhao.pragas.length > 0 && (
+                <InfoSection title="🐛 Pragas Detectadas">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {talhao.pragas.map((praga, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "0.75rem",
+                          background: "#f9fafb",
+                          borderRadius: "0.5rem",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, color: "#374151" }}>
+                          {praga.tipo}
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: "#ef4444",
+                            fontSize: "1.1rem",
+                          }}
+                        >
+                          {praga.quantidade}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </InfoSection>
+              )}
+
+              {/* Ações */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
+                <ActionButton
+                  icon={<Edit size={18} />}
+                  label="Editar"
+                  color="#3b82f6"
+                  onClick={() => alert("Editar talhão (em breve)")}
+                />
+                <ActionButton
+                  icon={<Trash2 size={18} />}
+                  label="Excluir"
+                  color="#ef4444"
+                  onClick={() => alert("Excluir talhão (em breve)")}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* Tab: Gráficos */}
+          {activeTab === "graficos" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+            >
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "3rem 2rem",
+                  background: "#f9fafb",
+                  borderRadius: "0.75rem",
+                  border: "2px dashed #e5e7eb",
+                }}
+              >
+                <BarChart3 size={64} style={{ margin: "0 auto 1rem", color: "#9ca3af" }} />
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem" }}>
+                  Gráficos Profissionais
+                </h3>
+                <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                  Em breve: gráficos de evolução de pragas, mapas de calor, análise temporal e muito mais!
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    textAlign: "left",
+                    maxWidth: "350px",
+                    margin: "0 auto",
+                  }}
+                >
+                  <FeatureItem text="📊 Evolução temporal de infestação" />
+                  <FeatureItem text="🗺️ Mapa de calor por área" />
+                  <FeatureItem text="📈 Comparativo entre talhões" />
+                  <FeatureItem text="🎯 Eficiência de armadilhas" />
+                  <FeatureItem text="📉 Tendências e previsões" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Tab: Relatórios */}
+          {activeTab === "relatorios" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
+            >
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "3rem 2rem",
+                  background: "#f9fafb",
+                  borderRadius: "0.75rem",
+                  border: "2px dashed #e5e7eb",
+                }}
+              >
+                <FileText size={64} style={{ margin: "0 auto 1rem", color: "#9ca3af" }} />
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 600, color: "#374151", marginBottom: "0.5rem" }}>
+                  Relatórios Profissionais
+                </h3>
+                <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                  Sistema completo de relatórios exportáveis em PDF, Excel e dashboards interativos!
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                    textAlign: "left",
+                    maxWidth: "350px",
+                    margin: "0 auto",
+                  }}
+                >
+                  <FeatureItem text="📄 Relatório executivo em PDF" />
+                  <FeatureItem text="📊 Exportar dados para Excel" />
+                  <FeatureItem text="📸 Captura de tela do mapa" />
+                  <FeatureItem text="📧 Envio automático por email" />
+                  <FeatureItem text="🤖 Análise com IA (insights)" />
+                </div>
+              </div>
+
+              <ActionButton
+                icon={<Download size={18} />}
+                label="Gerar Relatório Completo"
+                color="#22c55e"
+                fullWidth
+                onClick={() => alert("Geração de relatório (em breve)")}
+              />
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// Componentes auxiliares
+function StatCard({ icon, label, value, color }: any) {
+  return (
+    <div
+      style={{
+        padding: "1rem",
+        background: "white",
+        borderRadius: "0.75rem",
+        border: "2px solid #e5e7eb",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ color }}>{icon}</div>
+      <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1f2937" }}>{value}</div>
+      <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>{label}</div>
+    </div>
+  );
+}
+
+function InfoSection({ title, children }: any) {
+  return (
+    <div
+      style={{
+        background: "white",
+        borderRadius: "0.75rem",
+        border: "2px solid #e5e7eb",
+        padding: "1.25rem",
+      }}
+    >
+      <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "#1f2937", marginBottom: "1rem" }}>
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function InfoRow({ label, value, valueColor }: any) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "0.5rem 0",
+        borderBottom: "1px solid #f3f4f6",
+      }}
+    >
+      <span style={{ fontSize: "0.875rem", color: "#6b7280", fontWeight: 600 }}>{label}:</span>
+      <span style={{ fontSize: "0.875rem", fontWeight: 700, color: valueColor || "#1f2937" }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ActionButton({ icon, label, color, fullWidth, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.5rem",
+        padding: "0.875rem 1.25rem",
+        background: color,
+        color: "white",
+        border: "none",
+        borderRadius: "0.625rem",
+        cursor: "pointer",
+        fontWeight: 700,
+        fontSize: "0.9rem",
+        width: fullWidth ? "100%" : "auto",
+        transition: "transform 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function FeatureItem({ text }: any) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        padding: "0.5rem",
+        fontSize: "0.875rem",
+        color: "#374151",
+        fontWeight: 600,
+      }}
+    >
+      {text}
+    </div>
+  );
+}

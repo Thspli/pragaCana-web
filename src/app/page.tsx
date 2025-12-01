@@ -5,6 +5,8 @@ import { Header } from "../components/panels/Header";
 import { useTalhoes, Talhao } from "../hooks/useTalhoes";
 import { TalhaoMap, TempPolygon } from "../components/map/TalhaoMap";
 import { NovoTalhaoModal } from "../components/modals/NovoTalhaoModal";
+import { ListaTalhoesModal } from "../components/modals/ListaTalhoesModal";
+import { TalhaoPanel } from "../components/panels/TalhaoPanel";
 
 export default function Page() {
   const { talhoes, loading, error, getTotals, createTalhao } = useTalhoes();
@@ -17,6 +19,7 @@ export default function Page() {
     useState<"baixo" | "medio" | "alto" | "critico">("baixo");
 
   const [talhaoSelecionado, setTalhaoSelecionado] = useState<Talhao | null>(null);
+  const [showListaTalhoes, setShowListaTalhoes] = useState(false);
 
   const handlePolygonCreated = (poly: TempPolygon) => {
     setTempPolygon(poly);
@@ -27,11 +30,13 @@ export default function Page() {
 
   const handleConfirmNovoTalhao = async () => {
     if (!tempPolygon || !newTalhaoNome.trim()) {
-      alert("Nome é obrigatório");
+      alert("⚠️ Nome é obrigatório");
       return;
     }
 
     try {
+      console.log("💾 Criando talhão:", newTalhaoNome);
+      
       await createTalhao({
         nome: newTalhaoNome,
         area: tempPolygon.area,
@@ -40,12 +45,19 @@ export default function Page() {
         boundary: tempPolygon.boundary,
       });
 
+      console.log("✅ Talhão criado! Recarregando página...");
+
+      // Fecha modal
       setShowNewTalhaoModal(false);
       setTempPolygon(null);
       setNewTalhaoNome("");
       setNewTalhaoStatus("baixo");
-      alert("✅ Talhão criado com sucesso!");
+
+      // 🔥 RECARREGA A PÁGINA
+      window.location.reload();
+
     } catch (err) {
+      console.error("❌ Erro ao salvar:", err);
       alert("❌ Erro ao salvar talhão. Verifique o backend.");
     }
   };
@@ -106,21 +118,20 @@ export default function Page() {
       <Header
         totals={totals}
         onNovoTalhao={() => {
-          // o botão do header pode futuramente acionar o mesmo fluxo do desenho,
-          // por enquanto só loga
           console.log("Novo talhão via header");
         }}
         onListaTalhoes={() => {
-          console.log("Abrir lista de talhões (a implementar)");
+          setShowListaTalhoes(true);
         }}
         onMinhaLocalizacao={() => {
-          console.log("Centralizar usuário (a implementar)");
+          console.log("Centralizar usuário");
         }}
         onCreateTestTalhao={() => {
-          console.log("Botão de teste API (opcional)");
+          console.log("Botão de teste API");
         }}
       />
 
+      {/* 🔥 RECARREGA PÁGINA QUANDO CRIA TALHÃO */}
       <TalhaoMap
         talhoes={talhoes}
         onPolygonCreated={handlePolygonCreated}
@@ -138,8 +149,20 @@ export default function Page() {
         onConfirm={handleConfirmNovoTalhao}
       />
 
-      {/* talhaoSelecionado ainda não está sendo exibido em painel;
-          isso entrará depois no TalhaoPanel.tsx */}
+      <ListaTalhoesModal
+        open={showListaTalhoes}
+        onClose={() => setShowListaTalhoes(false)}
+        talhoes={talhoes}
+        onTalhaoClick={(talhao) => {
+          setTalhaoSelecionado(talhao);
+          setShowListaTalhoes(false);
+        }}
+      />
+
+      <TalhaoPanel
+        talhao={talhaoSelecionado}
+        onClose={() => setTalhaoSelecionado(null)}
+      />
     </div>
   );
 }
