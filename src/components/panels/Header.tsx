@@ -1,9 +1,10 @@
+// src/components/panels/Header.tsx
 "use client";
 
 import React from "react";
-import { Bug, Plus } from "lucide-react";
+import { Bug, Plus, LogOut, User } from "lucide-react";
 import { motion } from "framer-motion";
-import styles from '../../../page.module.css';
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   totals: {
@@ -25,6 +26,8 @@ export function Header({
   onMinhaLocalizacao,
   onCreateTestTalhao,
 }: HeaderProps) {
+  const { user, logout } = useAuth();
+
   return (
     <header style={{ 
       background: "linear-gradient(to right, #15803d, #22c55e)", 
@@ -61,7 +64,8 @@ export function Header({
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Stats */}
           <motion.div
             onClick={onListaTalhoes}
             whileHover={{ scale: 1.05, y: -5 }}
@@ -109,27 +113,61 @@ export function Header({
             </p>
           </motion.div>
 
-          <motion.button
-            onClick={onCreateTestTalhao}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={{
-              background: "rgba(255,255,255,0.2)",
-              color: "white",
-              padding: "0.75rem 1rem",
-              borderRadius: "0.5rem",
-              cursor: "pointer",
-              border: "none",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem"
-            }}
-          >
-            <Plus size={18} />
-            Teste API
-          </motion.button>
+          {/* User info e Logout */}
+          {user && (
+            <>
+              <div style={{ 
+                background: "rgba(255,255,255,0.2)", 
+                padding: "0.75rem 1.25rem", 
+                borderRadius: "0.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem"
+              }}>
+                <User size={18} style={{ color: "white" }} />
+                <div>
+                  <p style={{ 
+                    fontSize: "0.875rem", 
+                    fontWeight: "bold", 
+                    color: "white", 
+                    margin: 0,
+                    lineHeight: 1.2
+                  }}>
+                    {user.nome}
+                  </p>
+                  <p style={{ 
+                    fontSize: "0.7rem", 
+                    color: "rgba(255,255,255,0.8)", 
+                    margin: 0 
+                  }}>
+                    {user.fazenda || user.email}
+                  </p>
+                </div>
+              </div>
+
+              <motion.button
+                onClick={logout}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  background: "rgba(220, 38, 38, 0.9)",
+                  color: "white",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "0.5rem",
+                  cursor: "pointer",
+                  border: "2px solid rgba(255,255,255,0.3)",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem"
+                }}
+              >
+                <LogOut size={18} />
+                Sair
+              </motion.button>
+            </>
+          )}
         </div>
       </div>
     </header>

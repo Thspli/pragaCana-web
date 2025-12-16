@@ -1,0 +1,503 @@
+/* src/app/auth/auth.module.css */
+
+.authContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f766e 0%, #15803d 50%, #22c55e 100%);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efeito de fundo animado */
+.authContainer::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: backgroundMove 20s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes backgroundMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+/* Card principal */
+.authCard {
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header do card */
+.authHeader {
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.authHeader::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.authLogo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.authLogo svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: white;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+}
+
+.authTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.authSubtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Corpo do card */
+.authBody {
+  padding: 2.5rem 2rem;
+}
+
+/* Formulário */
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formLabel {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formLabel svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  color: #22c55e;
+}
+
+.inputWrapper {
+  position: relative;
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  padding-left: 2.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.formInput::placeholder {
+  color: #9ca3af;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  width: 1.25rem;
+  height: 1.25rem;
+  pointer-events: none;
+}
+
+/* Botão de mostrar/esconder senha */
+.passwordToggle {
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.passwordToggle:hover {
+  color: #15803d;
+}
+
+.passwordToggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Checkbox lembrar-me */
+.rememberGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: #22c55e;
+}
+
+.checkboxLabel {
+  font-size: 0.9rem;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Link "Esqueceu a senha?" */
+.forgotLink {
+  text-align: right;
+  margin-top: -0.5rem;
+}
+
+.forgotLink a {
+  font-size: 0.875rem;
+  color: #15803d;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.forgotLink a:hover {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+/* Botões */
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #15803d 0%, #22c55e 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.submitButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+}
+
+.submitButton:active {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submitButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Divisor "ou" */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.dividerText {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* Botões sociais */
+.socialButtons {
+  display: flex;
+  gap: 1rem;
+}
+
+.socialButton {
+  flex: 1;
+  padding: 0.875rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.socialButton:hover {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+}
+
+.socialButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Footer do card */
+.authFooter {
+  padding: 1.5rem 2rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.authFooter p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.authFooter a {
+  color: #15803d;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.authFooter a:hover {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+/* Alert/Error messages */
+.alert {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alertError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 2px solid #fecaca;
+}
+
+.alertSuccess {
+  background: #f0fdf4;
+  color: #14532d;
+  border: 2px solid #bbf7d0;
+}
+
+.alert svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Password strength indicator */
+.passwordStrength {
+  margin-top: 0.5rem;
+}
+
+.strengthBar {
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.strengthFill {
+  height: 100%;
+  transition: all 0.3s ease;
+  border-radius: 2px;
+}
+
+.strengthWeak {
+  width: 33%;
+  background: #ef4444;
+}
+
+.strengthMedium {
+  width: 66%;
+  background: #f59e0b;
+}
+
+.strengthStrong {
+  width: 100%;
+  background: #22c55e;
+}
+
+.strengthText {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.strengthTextWeak {
+  color: #ef4444;
+}
+
+.strengthTextMedium {
+  color: #f59e0b;
+}
+
+.strengthTextStrong {
+  color: #22c55e;
+}
+
+/* Responsivo */
+@media (max-width: 640px) {
+  .authContainer {
+    padding: 1rem;
+  }
+
+  .authCard {
+    max-width: 100%;
+  }
+
+  .authHeader {
+    padding: 2rem 1.5rem;
+  }
+
+  .authBody {
+    padding: 2rem 1.5rem;
+  }
+
+  .authTitle {
+    font-size: 1.5rem;
+  }
+
+  .socialButtons {
+    flex-direction: column;
+  }
+}
