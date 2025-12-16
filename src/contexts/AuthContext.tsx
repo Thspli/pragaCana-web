@@ -29,6 +29,9 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 🔥 CONFIGURAÇÃO DA API - MUDE AQUI QUANDO SUBIR PRO AZURE
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,17 +42,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     try {
-      // Verifica se tem token no cookie (simulado com localStorage)
       const token = localStorage.getItem('auth_token');
-      const userData = localStorage.getItem('user_data');
+      
+      if (token) {
+        // Verifica se o token é válido com a API
+        const response = await fetch(`${API_URL}/usuarios/verificar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        });
 
-      if (token && userData) {
-        setUser(JSON.parse(userData));
+        if (response.ok) {
+          const userData = await response.json();
+          setUser({
+            id: userData.id.toString(),
+            nome: userData.nome,
+            email: userData.email,
+          });
+        } else {
+          // Token inválido, limpa o localStorage
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+        }
       }
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
     } finally {
       setLoading(false);
     }
@@ -57,34 +80,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string, rememberMe = false) => {
     try {
-      // SIMULAÇÃO - Substitua pela sua chamada real à API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch(`${API_URL}/usuarios/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          senha: password,
+        }),
+      });
 
-      // Exemplo de validação
-      if (email === 'admin@fazenda.com' && password === 'admin123') {
-        const userData: User = {
-          id: '1',
-          nome: 'João da Silva',
-          email: email,
-          fazenda: 'Fazenda Santa Rita'
-        };
-
-        const token = 'fake-jwt-token-' + Date.now();
-
-        // Salva no localStorage (simulando cookie)
-        localStorage.setItem('auth_token', token);
-        localStorage.setItem('user_data', JSON.stringify(userData));
-
-        // Atualiza o estado
-        setUser(userData);
-
-        // Define cookie via document.cookie para o middleware ler
-        document.cookie = `auth_token=${token}; path=/; ${rememberMe ? 'max-age=2592000' : ''}`;
-
-        return;
-      } else {
-        throw new Error('E-mail ou senha incorretos');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.erro || 'Erro ao fazer login');
       }
+
+      const data = await response.json();
+
+      const userData: User = {
+        id: data.id.toString(),
+        nome: data.nome,
+        email: data.email,
+      };
+
+      // Salva no localStorage
+      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+
+      // Define cookie
+      document.cookie = `auth_token=${data.token}; path=/; ${
+        rememberMe ? 'max-age=2592000' : ''
+      }`;
+
+      // Atualiza o estado
+      setUser(userData);
+
     } catch (error) {
       throw error;
     }
@@ -107,27 +138,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: RegisterData) => {
     try {
-      // SIMULAÇÃO - Substitua pela sua chamada real à API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch(`${API_URL}/usuarios`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: data.nome,
+          email: data.email,
+          senha: data.password,
+          telefone: data.telefone,
+          fazenda: data.fazenda,
+        }),
+      });
 
-      // Simula criação de conta
-      console.log('Conta criada:', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.erro || 'Erro ao criar conta');
+      }
 
-      // Após criar, já faz login automático
-      const userData: User = {
-        id: Date.now().toString(),
-        nome: data.nome,
-        email: data.email,
-        fazenda: data.fazenda
-      };
+      const responseData = await response.json();
 
-      const token = 'fake-jwt-token-' + Date.now();
+      // Após criar, faz login automático
+      await login(data.email, data.password, false);
 
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_data', JSON.stringify(userData));
-      document.cookie = `auth_token=${token}; path=/;`;
-
-      setUser(userData);
     } catch (error) {
       throw error;
     }

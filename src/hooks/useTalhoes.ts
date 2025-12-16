@@ -20,6 +20,17 @@ export interface Talhao {
   pragas: Praga[] | null;
 }
 
+// 🔥 Função helper para pegar o token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth_token');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+
 export function useTalhoes() {
   const [talhoes, setTalhoes] = useState<Talhao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +41,23 @@ export function useTalhoes() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("http://localhost:3333/talhoes");
-        if (!response.ok) throw new Error("Erro ao buscar talhões");
+        
+        const response = await fetch(`${API_URL}/talhoes`, {
+          headers: getAuthHeaders() // 🔥 Envia o token JWT
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("Sessão expirada. Faça login novamente.");
+          }
+          throw new Error("Erro ao buscar talhões");
+        }
+        
         const data = await response.json();
         setTalhoes(data);
       } catch (err: any) {
         console.error("Erro no fetch:", err);
-        setError("Falha ao carregar talhões. Backend pode estar offline.");
+        setError(err.message || "Falha ao carregar talhões. Backend pode estar offline.");
         setTalhoes([]);
       } finally {
         setLoading(false);
@@ -55,9 +76,9 @@ export function useTalhoes() {
     pragas?: Praga[];
   }) => {
     try {
-      const response = await fetch("http://localhost:3333/talhoes", {
+      const response = await fetch(`${API_URL}/talhoes`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(), // 🔥 Envia o token JWT
         body: JSON.stringify({
           nome: talhaoData.nome,
           area: talhaoData.area,
@@ -69,7 +90,12 @@ export function useTalhoes() {
         }),
       });
 
-      if (!response.ok) throw new Error("Erro ao criar talhão");
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Sessão expirada. Faça login novamente.");
+        }
+        throw new Error("Erro ao criar talhão");
+      }
       
       const novoTalhao = await response.json();
       setTalhoes(prev => [...prev, novoTalhao]);
