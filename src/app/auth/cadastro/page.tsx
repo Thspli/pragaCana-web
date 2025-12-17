@@ -66,7 +66,6 @@ export default function CadastroPage() {
     setError("");
     setSuccess("");
 
-    // Validações
     if (!formData.nome || !formData.email || !formData.password || !formData.confirmPassword) {
       setError("Por favor, preencha todos os campos obrigatórios!");
       return;
@@ -118,7 +117,6 @@ export default function CadastroPage() {
   return (
     <div className={styles.authContainer}>
       <div className={styles.authCard}>
-        {/* Header */}
         <div className={styles.authHeader}>
           <div className={styles.authLogo}>
             <Bug />
@@ -129,9 +127,7 @@ export default function CadastroPage() {
           </p>
         </div>
 
-        {/* Body */}
         <div className={styles.authBody}>
-          {/* Alert de erro */}
           {error && (
             <div className={`${styles.alert} ${styles.alertError}`}>
               <AlertCircle />
@@ -139,7 +135,6 @@ export default function CadastroPage() {
             </div>
           )}
 
-          {/* Alert de sucesso */}
           {success && (
             <div className={`${styles.alert} ${styles.alertSuccess}`}>
               <CheckCircle />
@@ -188,44 +183,42 @@ export default function CadastroPage() {
               </div>
             </div>
 
-            {/* Grid 2 colunas */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor="telefone">
-                  <Phone />
-                  Telefone
-                </label>
-                <div className={styles.inputWrapper}>
-                  <Phone className={styles.inputIcon} />
-                  <input
-                    id="telefone"
-                    type="tel"
-                    className={styles.formInput}
-                    placeholder="(00) 00000-0000"
-                    value={formData.telefone}
-                    onChange={(e) => handleInputChange("telefone", e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
+            {/* 🔥 GRID 2 COLUNAS - CORRIGIDO */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="telefone">
+                <Phone />
+                Telefone
+              </label>
+              <div className={styles.inputWrapper}>
+                <Phone className={styles.inputIcon} />
+                <input
+                  id="telefone"
+                  type="tel"
+                  className={styles.formInput}
+                  placeholder="(00) 00000-0000"
+                  value={formData.telefone}
+                  onChange={(e) => handleInputChange("telefone", e.target.value)}
+                  disabled={loading}
+                />
               </div>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel} htmlFor="fazenda">
-                  <MapPin />
-                  Fazenda
-                </label>
-                <div className={styles.inputWrapper}>
-                  <MapPin className={styles.inputIcon} />
-                  <input
-                    id="fazenda"
-                    type="text"
-                    className={styles.formInput}
-                    placeholder="Nome da fazenda"
-                    value={formData.fazenda}
-                    onChange={(e) => handleInputChange("fazenda", e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel} htmlFor="fazenda">
+                <MapPin />
+                Fazenda
+              </label>
+              <div className={styles.inputWrapper}>
+                <MapPin className={styles.inputIcon} />
+                <input
+                  id="fazenda"
+                  type="text"
+                  className={styles.formInput}
+                  placeholder="Nome da fazenda"
+                  value={formData.fazenda}
+                  onChange={(e) => handleInputChange("fazenda", e.target.value)}
+                  disabled={loading}
+                />
               </div>
             </div>
 
@@ -356,12 +349,10 @@ export default function CadastroPage() {
             </button>
           </form>
 
-          {/* Divisor */}
           <div className={styles.divider}>
             <span className={styles.dividerText}>OU CADASTRE-SE COM</span>
           </div>
 
-          {/* Botões sociais */}
           <div className={styles.socialButtons}>
             <button 
               className={styles.socialButton}
@@ -387,7 +378,6 @@ export default function CadastroPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className={styles.authFooter}>
           <p>
             Já tem uma conta?{" "}
