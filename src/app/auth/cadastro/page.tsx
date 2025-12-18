@@ -24,7 +24,7 @@ export default function CadastroPage() {
   const { register } = useAuth();
 
   const [formData, setFormData] = useState({
-    nome: "",
+    nomeCompleto: "",
     email: "",
     telefone: "",
     fazenda: "",
@@ -66,7 +66,7 @@ export default function CadastroPage() {
     setError("");
     setSuccess("");
 
-    if (!formData.nome || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.nomeCompleto || !formData.email || !formData.password || !formData.confirmPassword) {
       setError("Por favor, preencha todos os campos obrigatórios!");
       return;
     }
@@ -95,7 +95,7 @@ export default function CadastroPage() {
 
     try {
       await register({
-        nome: formData.nome,
+        nomeCompleto: formData.nomeCompleto,
         email: formData.email,
         password: formData.password,
         telefone: formData.telefone,
@@ -145,19 +145,19 @@ export default function CadastroPage() {
           <form className={styles.authForm} onSubmit={handleSubmit}>
             {/* Nome completo */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel} htmlFor="nome">
+              <label className={styles.formLabel} htmlFor="nomeCompleto">
                 <User />
                 Nome Completo *
               </label>
               <div className={styles.inputWrapper}>
                 <User className={styles.inputIcon} />
                 <input
-                  id="nome"
+                  id="nomeCompleto"
                   type="text"
                   className={styles.formInput}
                   placeholder="João da Silva"
-                  value={formData.nome}
-                  onChange={(e) => handleInputChange("nome", e.target.value)}
+                  value={formData.nomeCompleto}
+                  onChange={(e) => handleInputChange("nomeCompleto", e.target.value)}
                   disabled={loading}
                 />
               </div>

@@ -338,9 +338,15 @@ export function ListaTalhoesModal({
                               fontWeight: 600,
                             }}
                           >
-                            Lat: {talhao.center[0].toFixed(5)}
-                            <br />
-                            Lng: {talhao.center[1].toFixed(5)}
+                            {talhao.center ? (
+                              <>
+                                Lat: {talhao.center[0].toFixed(5)}
+                                <br />
+                                Lng: {talhao.center[1].toFixed(5)}
+                              </>
+                            ) : (
+                              <>Lat: N/A<br />Lng: N/A</>
+                            )}
                           </span>
                           {onTalhaoClick && (
                             <span

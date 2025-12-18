@@ -246,10 +246,21 @@ export function TalhaoMap({
       mapInstanceRef.current.layers.push(marker);
     });
 
-    // Centraliza no último talhão
+    // Centraliza no último talhão (verifica centro válido)
     const ultimo = talhoes[talhoes.length - 1];
-    if (ultimo?.center) {
-      map.setView(ultimo.center, 17, { animate: true });
+    const hasValidCenter = (() => {
+      if (!ultimo || !ultimo.center) return false;
+      const c = ultimo.center;
+      if (Array.isArray(c)) return c.length === 2 && c[0] != null && c[1] != null;
+      return c && typeof c.lat === 'number' && typeof c.lng === 'number';
+    })();
+
+    if (hasValidCenter) {
+      try {
+        map.setView(ultimo.center, 17, { animate: true });
+      } catch (e) {
+        console.warn('Não foi possível centralizar no talhão:', e);
+      }
     }
   }, [mapInitialized, talhoes, onTalhaoClick]);
 

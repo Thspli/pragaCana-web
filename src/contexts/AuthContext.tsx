@@ -20,7 +20,7 @@ interface AuthContextType {
 }
 
 interface RegisterData {
-  nome: string;
+  nomeCompleto?: string;
   email: string;
   password: string;
   telefone?: string;
@@ -144,12 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nome: data.nome,
-          email: data.email,
-          senha: data.password,
-          telefone: data.telefone,
-          fazenda: data.fazenda,
-        }),
+            nome: data.nomeCompleto ?? data.email,
+            email: data.email,
+            senha: data.password,
+            telefone: data.telefone,
+            fazenda: data.fazenda,
+          }),
       });
 
       if (!response.ok) {

@@ -66,10 +66,13 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
     }
 
     try {
-      const response = await fetch(`http://localhost:3333/talhoes/${talhao.id}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const response = await fetch(`${API_URL}/talhoes/${talhao.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           nome: editedNome,
@@ -102,8 +105,13 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
 
     try {
       setIsDeleting(true);
-      const response = await fetch(`http://localhost:3333/talhoes/${talhao.id}`, {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const response = await fetch(`${API_URL}/talhoes/${talhao.id}`, {
         method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
 
       if (!response.ok) {
@@ -361,8 +369,17 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
               {/* Coordenadas GPS */}
               <InfoSection title="📍 Coordenadas GPS">
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  <InfoRow label="Latitude" value={talhao.center[0].toFixed(6)} />
-                  <InfoRow label="Longitude" value={talhao.center[1].toFixed(6)} />
+                  {talhao.center ? (
+                    <>
+                      <InfoRow label="Latitude" value={talhao.center[0].toFixed(6)} />
+                      <InfoRow label="Longitude" value={talhao.center[1].toFixed(6)} />
+                    </>
+                  ) : (
+                    <>
+                      <InfoRow label="Latitude" value={"N/A"} />
+                      <InfoRow label="Longitude" value={"N/A"} />
+                    </>
+                  )}
                   <InfoRow
                     label="Perímetro"
                     value={`${talhao.boundary?.length ?? 0} pontos`}
