@@ -12,7 +12,7 @@ export interface TempPolygon {
 export function useDraw(mapRef: React.RefObject<HTMLDivElement>) {
   const [drawingMode, setDrawingMode] = useState(false);
   const [tempPolygon, setTempPolygon] = useState<TempPolygon | null>(null);
-  const { mapLoaded, getMapInstance } = useMap(mapRef);
+  const { mapLoaded, getMapInstance } = useMap(mapRef, false);
 
   const toggleDrawingMode = () => {
     setDrawingMode(!drawingMode);

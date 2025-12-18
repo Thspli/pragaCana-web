@@ -4,9 +4,12 @@ import React, { useState } from "react";
 import { Header } from "../components/panels/Header";
 import { useTalhoes, Talhao } from "../hooks/useTalhoes";
 import { TalhaoMap, TempPolygon } from "../components/map/TalhaoMap";
+import { useArmadilhas } from "../hooks/useArmadilhas";
 import { NovoTalhaoModal } from "../components/modals/NovoTalhaoModal";
+import { NovoArmadilhaModal } from "../components/modals/NovoArmadilhaModal";
 import { ListaTalhoesModal } from "../components/modals/ListaTalhoesModal";
 import { TalhaoPanel } from "../components/panels/TalhaoPanel";
+import { ArmadilhaPanel } from "../components/panels/ArmadilhaPanel";
 
 export default function Page() {
   const { talhoes, loading, error, getTotals, createTalhao } = useTalhoes();
@@ -19,7 +22,43 @@ export default function Page() {
     useState<"baixo" | "medio" | "alto" | "critico">("baixo");
 
   const [talhaoSelecionado, setTalhaoSelecionado] = useState<Talhao | null>(null);
+  const [armadilhaSelecionada, setArmadilhaSelecionada] = useState<any | null>(null);
   const [showListaTalhoes, setShowListaTalhoes] = useState(false);
+  const { createArmadilha, updateArmadilha } = useArmadilhas();
+
+  const [armadilhaModalOpen, setArmadilhaModalOpen] = useState(false);
+  const [pendingArmadilha, setPendingArmadilha] = useState<{ lat: number; lng: number; talhaoId?: number | null } | null>(null);
+
+  const handleAddArmadilha = async (lat: number, lng: number, talhaoId?: number | null) => {
+    if (!talhaoId) {
+      alert('A armadilha precisa estar dentro de um talhão. Clique dentro de um talhão para adicionar.');
+      return;
+    }
+
+    setPendingArmadilha({ lat, lng, talhaoId });
+    setArmadilhaModalOpen(true);
+  };
+
+  const handleConfirmArmadilha = async (data: any) => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      if (data.existingId) {
+        const id = data.existingId;
+        const payload = { nome: data.nome, observacao: data.observacao, foto: data.foto, dataFoto: data.dataFoto, ausencia: data.ausencia };
+        const updated = await updateArmadilha(id, payload, token);
+        // notify map to refresh this talhão
+        window.dispatchEvent(new CustomEvent('armadilha:changed', { detail: { action: 'updated', armadilha: updated } }));
+      } else {
+        const created = await createArmadilha(data, token);
+        window.dispatchEvent(new CustomEvent('armadilha:changed', { detail: { action: 'created', armadilha: created } }));
+      }
+      alert('Armadilha criada/atualizada com sucesso');
+      setArmadilhaModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao criar armadilha');
+    }
+  };
 
   const handlePolygonCreated = (poly: TempPolygon) => {
     setTempPolygon(poly);
@@ -136,6 +175,8 @@ export default function Page() {
         talhoes={talhoes}
         onPolygonCreated={handlePolygonCreated}
         onTalhaoClick={(t) => setTalhaoSelecionado(t)}
+        onArmadilhaClick={(a) => setArmadilhaSelecionada(a)}
+        onAddArmadilha={handleAddArmadilha}
       />
 
       <NovoTalhaoModal
@@ -159,10 +200,21 @@ export default function Page() {
         }}
       />
 
+      <NovoArmadilhaModal
+        open={armadilhaModalOpen}
+        onClose={() => setArmadilhaModalOpen(false)}
+        lat={pendingArmadilha?.lat ?? 0}
+        lng={pendingArmadilha?.lng ?? 0}
+        talhaoId={pendingArmadilha?.talhaoId ?? 0}
+        talhaoNome={talhaoSelecionado?.nome}
+        onConfirm={handleConfirmArmadilha}
+      />
+
       <TalhaoPanel
         talhao={talhaoSelecionado}
         onClose={() => setTalhaoSelecionado(null)}
       />
+      <ArmadilhaPanel armadilha={armadilhaSelecionada} onClose={() => setArmadilhaSelecionada(null)} />
     </div>
   );
 }

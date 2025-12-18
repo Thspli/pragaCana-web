@@ -1,8 +1,8 @@
 // src/app/auth/login/page.tsx
 "use client";
 
-import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Bug, 
@@ -18,7 +18,17 @@ import styles from "../auth.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [redirectUrl, setRedirectUrl] = useState<string>('/');
+
+  useEffect(() => {
+    try {
+      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const r = params?.get('redirect') || '/';
+      setRedirectUrl(r);
+    } catch (e) {
+      setRedirectUrl('/');
+    }
+  }, []);
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -53,10 +63,8 @@ export default function LoginPage() {
       setSuccess("Login realizado com sucesso!");
       
       // Pega a URL de redirecionamento ou vai pra home
-      const redirectUrl = searchParams.get('redirect') || '/';
-      
       setTimeout(() => {
-        router.push(redirectUrl);
+        router.push(redirectUrl || '/');
       }, 1000);
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login. Tente novamente.");
