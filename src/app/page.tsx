@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Header } from "../components/panels/Header";
+import { Header } from "../components/panels/Header"; // Header atualizado com glassmorphism
 import { useTalhoes, Talhao } from "../hooks/useTalhoes";
 import { TalhaoMap, TempPolygon } from "../components/map/TalhaoMap";
 import { useArmadilhas } from "../hooks/useArmadilhas";
@@ -9,7 +9,7 @@ import { NovoTalhaoModal } from "../components/modals/NovoTalhaoModal";
 import { NovoArmadilhaModal } from "../components/modals/NovoArmadilhaModal";
 import { ListaTalhoesModal } from "../components/modals/ListaTalhoesModal";
 import { ListaArmadilhasModal } from "../components/modals/ListaArmadilhasModal";
-import { TutorialTalhao } from "../components/tutorial/TutorialTalhao"; // 🔥 NOVO
+import { TutorialTalhao } from "../components/tutorial/TutorialTalhao";
 import { TalhaoPanel } from "../components/panels/TalhaoPanel";
 import { ArmadilhaPanel } from "../components/panels/ArmadilhaPanel";
 
@@ -27,21 +27,18 @@ export default function Page() {
   const [armadilhaSelecionada, setArmadilhaSelecionada] = useState<any | null>(null);
   const [showListaTalhoes, setShowListaTalhoes] = useState(false);
   const [showListaArmadilhas, setShowListaArmadilhas] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false); // 🔥 NOVO
+  const [showTutorial, setShowTutorial] = useState(false);
   const { createArmadilha, updateArmadilha } = useArmadilhas();
 
   const [armadilhaModalOpen, setArmadilhaModalOpen] = useState(false);
   const [pendingArmadilha, setPendingArmadilha] = useState<{ lat: number; lng: number; talhaoId?: number | null } | null>(null);
   
-  // 🔥 Estados para contagem real de armadilhas
   const [armadilhaRealCount, setArmadilhaRealCount] = useState<number | null>(null);
   const [totalArmadilhasGlobal, setTotalArmadilhasGlobal] = useState<number>(0);
 
-  // 🔥 NOVO: Verifica se é a primeira vez e se não tem talhões
   React.useEffect(() => {
     const tutorialCompleted = localStorage.getItem('tutorial_talhao_completed');
     if (!tutorialCompleted && !loading && talhoes.length === 0) {
-      // Mostra o tutorial após 1 segundo
       const timer = setTimeout(() => {
         setShowTutorial(true);
       }, 1000);
@@ -49,14 +46,12 @@ export default function Page() {
     }
   }, [loading, talhoes]);
 
-  // 🔥 NOVO: Busca contagem total de armadilhas quando carrega os talhões
   React.useEffect(() => {
     if (talhoes.length > 0) {
       fetchTotalArmadilhas();
     }
   }, [talhoes]);
 
-  // 🔥 NOVO: Listener para mudanças em armadilhas (criar, editar, deletar)
   React.useEffect(() => {
     const handleArmadilhaChange = () => {
       console.log('🔄 Detectada mudança em armadilha, atualizando contador...');
@@ -70,7 +65,6 @@ export default function Page() {
     };
   }, [talhoes]);
 
-  // 🔥 NOVO: Função para buscar total de armadilhas de todos os talhões
   const fetchTotalArmadilhas = async () => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
@@ -78,7 +72,6 @@ export default function Page() {
 
       let totalCount = 0;
 
-      // Busca armadilhas de cada talhão
       for (const talhao of talhoes) {
         const params = new URLSearchParams();
         params.set('talhaoId', String(talhao.id));
@@ -92,12 +85,10 @@ export default function Page() {
         if (res.ok) {
           const armadilhas = await res.json();
           
-          // Remove duplicatas
           const uniqueArmadilhas = Array.from(
             new Map(armadilhas.map((a: any) => [a.id, a])).values()
           );
           
-          // Filtra apenas com coordenadas válidas
           const armadilhasValidas = uniqueArmadilhas.filter(
             (a: any) => a.latitude != null && a.longitude != null
           );
@@ -166,12 +157,10 @@ export default function Page() {
         console.log(`✅ Nova armadilha criada (ID: ${created.id})!`);
       }
       
-      // Atualiza a contagem real se o painel estiver aberto
       if (talhaoSelecionado && talhaoSelecionado.id === data.talhaoId) {
         await fetchRealArmadilhaCount(data.talhaoId);
       }
       
-      // 🔥 NOVO: Atualiza contador global
       await fetchTotalArmadilhas();
       
       alert('✅ Armadilha salva com sucesso!');
@@ -184,7 +173,6 @@ export default function Page() {
     }
   };
 
-  // Função para buscar contagem real de armadilhas
   const fetchRealArmadilhaCount = async (talhaoId: number) => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
@@ -208,31 +196,13 @@ export default function Page() {
       
       const armadilhas = await res.json();
       
-      console.log(`📦 [PANEL] Resposta bruta da API:`, armadilhas);
-      console.log(`📦 [PANEL] Total retornado pela API: ${armadilhas.length}`);
-      
-      const ids = armadilhas.map((a: any) => a.id);
-      console.log(`🔢 [PANEL] IDs retornados:`, ids);
-      
-      // Remove duplicatas
       const uniqueArmadilhas = Array.from(
         new Map(armadilhas.map((a: any) => [a.id, a])).values()
       );
       
-      // Filtra apenas armadilhas COM coordenadas válidas
       const armadilhasComCoordenadas = uniqueArmadilhas.filter(
         (a: any) => a.latitude != null && a.longitude != null
       );
-      
-      const validIds = armadilhasComCoordenadas.map((a: any) => a.id);
-      const removedIds = uniqueArmadilhas
-        .filter((a: any) => a.latitude == null || a.longitude == null)
-        .map((a: any) => a.id);
-      
-      console.log(`🔢 [PANEL] IDs únicos:`, uniqueArmadilhas.map((a: any) => a.id));
-      console.log(`✅ [PANEL] IDs com coordenadas:`, validIds);
-      console.log(`⚠️ [PANEL] IDs SEM coordenadas (ignorados):`, removedIds);
-      console.log(`✅ [PANEL] Contagem final (COM coordenadas): ${armadilhasComCoordenadas.length}`);
       
       setArmadilhaRealCount(armadilhasComCoordenadas.length);
       
@@ -241,10 +211,9 @@ export default function Page() {
     }
   };
 
-  // Quando seleciona um talhão, busca a contagem real
   const handleTalhaoClick = (talhao: Talhao) => {
     setTalhaoSelecionado(talhao);
-    setArmadilhaRealCount(null); // Reset
+    setArmadilhaRealCount(null);
     fetchRealArmadilhaCount(talhao.id);
   };
 
@@ -340,10 +309,11 @@ export default function Page() {
         </div>
       )}
 
+      {/* Header com Glassmorphism */}
       <Header
         totals={{
           ...totals,
-          totalArmadilhas: totalArmadilhasGlobal // 🔥 USA A CONTAGEM REAL
+          totalArmadilhas: totalArmadilhasGlobal
         }}
         onNovoTalhao={() => {
           console.log("Novo talhão via header");
@@ -389,13 +359,12 @@ export default function Page() {
           handleTalhaoClick(talhao);
           setShowListaTalhoes(false);
         }}
-        onNovoTalhao={() => { // 🔥 NOVO
+        onNovoTalhao={() => {
           setShowListaTalhoes(false);
-          setShowTutorial(true); // Abre o tutorial
+          setShowTutorial(true);
         }}
       />
 
-      {/* 🔥 NOVO: Modal de Armadilhas */}
       <ListaArmadilhasModal
         open={showListaArmadilhas}
         onClose={() => setShowListaArmadilhas(false)}
@@ -433,7 +402,6 @@ export default function Page() {
         onClose={() => setArmadilhaSelecionada(null)} 
       />
 
-      {/* 🔥 NOVO: Tutorial Interativo */}
       <TutorialTalhao
         open={showTutorial}
         onClose={() => setShowTutorial(false)}
