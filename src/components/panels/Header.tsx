@@ -15,6 +15,7 @@ interface HeaderProps {
   };
   onNovoTalhao: () => void;
   onListaTalhoes: () => void;
+  onListaArmadilhas: () => void; // 🔥 NOVO
   onMinhaLocalizacao: () => void;
   onCreateTestTalhao: () => void;
 }
@@ -23,6 +24,7 @@ export function Header({
   totals,
   onNovoTalhao,
   onListaTalhoes,
+  onListaArmadilhas, // 🔥 NOVO
   onMinhaLocalizacao,
   onCreateTestTalhao,
 }: HeaderProps) {
@@ -85,12 +87,18 @@ export function Header({
             </p>
           </motion.div>
 
-          <motion.div whileHover={{ scale: 1.05, y: -5 }} style={{ 
-            textAlign: "center", 
-            background: "rgba(255,255,255,0.2)", 
-            padding: "0.75rem 1.25rem", 
-            borderRadius: "0.5rem" 
-          }}>
+          {/* 🔥 ATUALIZADO: Card de Armadilhas agora é clicável */}
+          <motion.div 
+            onClick={onListaArmadilhas}
+            whileHover={{ scale: 1.05, y: -5 }} 
+            style={{ 
+              textAlign: "center", 
+              background: "rgba(255,255,255,0.2)", 
+              padding: "0.75rem 1.25rem", 
+              borderRadius: "0.5rem",
+              cursor: "pointer"
+            }}
+          >
             <p style={{ fontSize: "1.5rem", fontWeight: "bold", color: "white", margin: 0 }}>
               {totals.totalArmadilhas}
             </p>

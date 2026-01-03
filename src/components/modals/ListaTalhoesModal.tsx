@@ -1,8 +1,9 @@
+// src/components/modals/ListaTalhoesModal.tsx
 "use client";
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Calendar, Bug, Target } from "lucide-react";
+import { X, MapPin, Calendar, Bug, Target, Plus } from "lucide-react";
 import { Talhao } from "../../hooks/useTalhoes";
 
 interface ListaTalhoesModalProps {
@@ -10,6 +11,7 @@ interface ListaTalhoesModalProps {
   onClose: () => void;
   talhoes: Talhao[];
   onTalhaoClick?: (talhao: Talhao) => void;
+  onNovoTalhao?: () => void; // 🔥 NOVO
 }
 
 export function ListaTalhoesModal({
@@ -17,6 +19,7 @@ export function ListaTalhoesModal({
   onClose,
   talhoes,
   onTalhaoClick,
+  onNovoTalhao, // 🔥 NOVO
 }: ListaTalhoesModalProps) {
   if (!open) return null;
 
@@ -147,19 +150,134 @@ export function ListaTalhoesModal({
               }}
             >
               {talhoes.length === 0 ? (
+                // 🔥 NOVO: Estado vazio melhorado
                 <div
                   style={{
                     textAlign: "center",
                     padding: "4rem 2rem",
-                    color: "#6b7280",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "2rem",
                   }}
                 >
-                  <MapPin size={64} style={{ margin: "0 auto 1rem", opacity: 0.3 }} />
-                  <h3 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-                    Nenhum talhão cadastrado
-                  </h3>
-                  <p style={{ fontSize: "0.9rem" }}>
-                    Comece desenhando um novo talhão no mapa!
+                  {/* Ilustração */}
+                  <div
+                    style={{
+                      width: "120px",
+                      height: "120px",
+                      background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "4px solid #bbf7d0",
+                      boxShadow: "0 8px 24px rgba(34, 197, 94, 0.15)",
+                    }}
+                  >
+                    <MapPin size={64} style={{ color: "#15803d" }} />
+                  </div>
+
+                  {/* Título e descrição */}
+                  <div>
+                    <h3
+                      style={{
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                        color: "#15803d",
+                        marginBottom: "0.75rem",
+                      }}
+                    >
+                      Nenhum talhão cadastrado
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: "1rem",
+                        color: "#6b7280",
+                        lineHeight: 1.6,
+                        maxWidth: "500px",
+                        margin: "0 auto",
+                      }}
+                    >
+                      Comece criando seu primeiro talhão para monitorar pragas e armadilhas na sua plantação
+                    </p>
+                  </div>
+
+                  {/* Features */}
+                  <div
+                    style={{
+                      background: "#f0fdf4",
+                      border: "2px solid #bbf7d0",
+                      borderRadius: "1rem",
+                      padding: "1.5rem",
+                      maxWidth: "500px",
+                      width: "100%",
+                    }}
+                  >
+                    <h4
+                      style={{
+                        fontSize: "0.95rem",
+                        fontWeight: 700,
+                        color: "#15803d",
+                        marginBottom: "1rem",
+                        textAlign: "left",
+                      }}
+                    >
+                      ✨ Com talhões você pode:
+                    </h4>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.75rem",
+                        textAlign: "left",
+                      }}
+                    >
+                      <FeatureItem icon="🗺️" text="Desenhar áreas personalizadas no mapa" />
+                      <FeatureItem icon="🪤" text="Adicionar e gerenciar armadilhas" />
+                      <FeatureItem icon="🐛" text="Monitorar pragas em tempo real" />
+                      <FeatureItem icon="📊" text="Gerar relatórios detalhados" />
+                    </div>
+                  </div>
+
+                  {/* Botão de ação */}
+                  {onNovoTalhao && (
+                    <motion.button
+                      onClick={() => {
+                        onNovoTalhao();
+                        onClose();
+                      }}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        padding: "1rem 2rem",
+                        background: "linear-gradient(135deg, #15803d, #22c55e)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "0.75rem",
+                        fontSize: "1.1rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        boxShadow: "0 4px 12px rgba(34, 197, 94, 0.3)",
+                      }}
+                    >
+                      <Plus size={24} />
+                      Criar Meu Primeiro Talhão
+                    </motion.button>
+                  )}
+
+                  {/* Dica */}
+                  <p
+                    style={{
+                      fontSize: "0.875rem",
+                      color: "#9ca3af",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    💡 Dica: Use a ferramenta de desenho no mapa para delimitar seu talhão
                   </p>
                 </div>
               ) : (
@@ -370,5 +488,24 @@ export function ListaTalhoesModal({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// 🔥 NOVO: Componente auxiliar para features
+function FeatureItem({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        fontSize: "0.9rem",
+        color: "#374151",
+        fontWeight: 600,
+      }}
+    >
+      <span style={{ fontSize: "1.25rem" }}>{icon}</span>
+      <span>{text}</span>
+    </div>
   );
 }

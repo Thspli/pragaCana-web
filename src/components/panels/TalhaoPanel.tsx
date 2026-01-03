@@ -352,7 +352,7 @@ export function TalhaoPanel({ talhao, armadilhaRealCount, onClose }: TalhaoPanel
                   label="Armadilhas"
                   value={displayArmadilhaCount}
                   color="#22c55e"
-                  badge={armadilhaRealCount !== null && armadilhaRealCount !== undefined ? "🔄 Atualizado" : undefined}
+                  badge={armadilhaRealCount !== null && armadilhaRealCount !== undefined ? "" : undefined}
                 />
               </div>
 
