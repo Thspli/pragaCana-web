@@ -64,8 +64,9 @@ export default function LoginPage() {
       
       // Pega a URL de redirecionamento ou vai pra home
       setTimeout(() => {
-        router.push(redirectUrl || '/');
-      }, 1000);
+        // Usa reload completo para garantir que o cookie esteja presente
+        window.location.assign(redirectUrl || '/');
+      }, 800);
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login. Tente novamente.");
     } finally {

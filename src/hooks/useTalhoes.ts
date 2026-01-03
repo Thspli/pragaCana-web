@@ -36,34 +36,35 @@ export function useTalhoes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchTalhoes = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`${API_URL}/talhoes`, {
-          headers: getAuthHeaders() // 🔥 Envia o token JWT
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error("Sessão expirada. Faça login novamente.");
-          }
-          throw new Error("Erro ao buscar talhões");
-        }
-        
-        const data = await response.json();
-        setTalhoes(data);
-      } catch (err: any) {
-        console.error("Erro no fetch:", err);
-        setError(err.message || "Falha ao carregar talhões. Backend pode estar offline.");
-        setTalhoes([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Função reutilizável para (re)carregar talhões
+  const fetchTalhoes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
+      const response = await fetch(`${API_URL}/talhoes`, {
+        headers: getAuthHeaders() // 🔥 Envia o token JWT
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Sessão expirada. Faça login novamente.");
+        }
+        throw new Error("Erro ao buscar talhões");
+      }
+
+      const data = await response.json();
+      setTalhoes(data);
+    } catch (err: any) {
+      console.error("Erro no fetch:", err);
+      setError(err.message || "Falha ao carregar talhões. Backend pode estar offline.");
+      setTalhoes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTalhoes();
   }, []);
 
@@ -123,6 +124,7 @@ export function useTalhoes() {
     loading,
     error,
     createTalhao,
+    reload: fetchTalhoes,
     getTotals,
   };
 }

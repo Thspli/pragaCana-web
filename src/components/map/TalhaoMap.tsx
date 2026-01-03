@@ -30,10 +30,11 @@ export function TalhaoMap({
   const [mapInitialized, setMapInitialized] = useState(false);
   const [drawing, setDrawing] = useState(false);
   const [addingArmadilha, setAddingArmadilha] = useState(false);
+  const armadilhaLayersRef = useRef<Map<number, any[]>>(new Map());
+  const [armadilhaCountsByTalhao, setArmadilhaCountsByTalhao] = useState<Map<number, number>>(new Map());
 
   // 1. Carrega scripts Leaflet
   useEffect(() => {
-    // Verifica se já foi carregado
     if ((window as any).L) {
       setScriptsLoaded(true);
       return;
@@ -68,13 +69,24 @@ export function TalhaoMap({
 
     document.body.appendChild(leafletJs);
 
-    // inject simple CSS for marker animation (only once)
     if (!document.getElementById('armadilha-marker-styles')) {
       const style = document.createElement('style');
       style.id = 'armadilha-marker-styles';
       style.innerHTML = `
-        .armadilha-bounce { animation: armadilha-pop 600ms cubic-bezier(.2,.8,.2,1); transform-origin: center; }
-        @keyframes armadilha-pop { 0% { transform: scale(0); opacity: 0 } 60% { transform: scale(1.15); opacity: 1 } 100% { transform: scale(1); opacity: 1 } }
+        .armadilha-bounce { animation: armadilha-pop 600ms cubic-bezier(.2,.8,.2,1); transform-origin: center bottom; }
+        @keyframes armadilha-pop { 
+          0% { transform: scale(0) translateY(20px); opacity: 0 } 
+          60% { transform: scale(1.15) translateY(-5px); opacity: 1 } 
+          100% { transform: scale(1) translateY(0); opacity: 1 } 
+        }
+        .armadilha-marker-container {
+          filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+          transition: all 0.2s ease;
+        }
+        .armadilha-marker-container:hover {
+          filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+          transform: translateY(-2px);
+        }
       `;
       document.head.appendChild(style);
     }
@@ -85,7 +97,7 @@ export function TalhaoMap({
     };
   }, []);
 
-  // 2. Inicializa mapa (SÓ DEPOIS DOS SCRIPTS)
+  // 2. Inicializa mapa
   useEffect(() => {
     if (!scriptsLoaded || !mapContainerRef.current || mapInstanceRef.current) {
       return;
@@ -94,7 +106,6 @@ export function TalhaoMap({
     const L = (window as any).L;
     console.log("🗺️ Inicializando mapa...");
 
-    // CRÍTICO: Remove qualquer instância anterior
     if (mapInstanceRef.current?.map) {
       mapInstanceRef.current.map.remove();
     }
@@ -105,7 +116,6 @@ export function TalhaoMap({
       zoomControl: true,
     });
 
-    // Camada de satélite
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles © Esri',
       maxZoom: 19,
@@ -117,10 +127,8 @@ export function TalhaoMap({
       map,
       drawnItems,
       layers: [],
-      armadilhaLayers: [],
     };
 
-    // Aguarda tiles carregarem
     setTimeout(() => {
       map.invalidateSize();
       setMapInitialized(true);
@@ -183,22 +191,19 @@ export function TalhaoMap({
     };
   }, [mapInitialized, drawing, onPolygonCreated]);
 
-  // 3.b Modo adicionar armadilha: captura clique único no mapa e detecta talhão
+  // 3.b Modo adicionar armadilha
   useEffect(() => {
     if (!mapInitialized || !mapInstanceRef.current) return;
 
     const { map } = mapInstanceRef.current;
 
     const pointInPolygon = (point: [number, number], vs: [number, number][]) => {
-      // ray-casting algorithm for point in polygon
       const x = point[0], y = point[1];
       let inside = false;
       for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
         const xi = vs[i][0], yi = vs[i][1];
         const xj = vs[j][0], yj = vs[j][1];
-
-        const intersect = ((yi > y) !== (yj > y)) &&
-          (x < (xj - xi) * (y - yi) / (yj - yi + 0.0) + xi);
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi + 0.0) + xi);
         if (intersect) inside = !inside;
       }
       return inside;
@@ -209,7 +214,6 @@ export function TalhaoMap({
       const lng = e.latlng?.lng;
       if (lat == null || lng == null) return;
 
-      // detecta se o ponto está dentro de algum talhão
       let foundTalhaoId: number | null = null;
       try {
         for (const t of talhoes) {
@@ -241,16 +245,168 @@ export function TalhaoMap({
         map.off('click', onMapClick);
       } catch (e) {}
     };
-  }, [mapInitialized, addingArmadilha]);
+  }, [mapInitialized, addingArmadilha, talhoes, onAddArmadilha]);
 
-  // 4. Renderiza talhões (FORÇA ATUALIZAÇÃO QUANDO MUDA)
+  // 🔥 FIX: Função melhorada para buscar e renderizar armadilhas
+  const fetchAndRenderArmadilhasForTalhao = useCallback(async (talhaoId: number) => {
+    if (!mapInstanceRef.current) return 0;
+    
+    const { map } = mapInstanceRef.current;
+    const L = (window as any).L;
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+
+      // Remove armadilhas antigas DESTE talhão específico
+      const oldLayers = armadilhaLayersRef.current.get(talhaoId) || [];
+      oldLayers.forEach((layer) => {
+        try {
+          map.removeLayer(layer);
+        } catch (e) {}
+      });
+      armadilhaLayersRef.current.set(talhaoId, []);
+
+      // Busca armadilhas
+      const params = new URLSearchParams();
+      params.set('talhaoId', String(talhaoId));
+      
+      console.log(`🔍 Buscando armadilhas do talhão ${talhaoId}...`);
+      
+      const res = await fetch(`${API_URL}/armadilhas?${params.toString()}`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!res.ok) {
+        console.warn(`⚠️ Erro ao buscar armadilhas do talhão ${talhaoId}: ${res.status}`);
+        return 0;
+      }
+
+      const armadilhas = await res.json();
+      
+      console.log(`📦 [MAPA] Resposta bruta da API:`, armadilhas);
+      console.log(`📦 [MAPA] Total retornado: ${armadilhas.length}`);
+      
+      // Log de IDs antes de remover duplicatas
+      const ids = armadilhas.map((a: any) => a.id);
+      console.log(`🔢 [MAPA] IDs retornados:`, ids);
+      
+      // Remove duplicatas baseado no ID
+      const uniqueArmadilhas = Array.from(
+        new Map(armadilhas.map((a: any) => [a.id, a])).values()
+      );
+      
+      // Log de IDs depois de remover duplicatas
+      const uniqueIds = uniqueArmadilhas.map((a: any) => a.id);
+      console.log(`🔢 [MAPA] IDs únicos:`, uniqueIds);
+      console.log(`✅ [MAPA] Contagem final: ${uniqueArmadilhas.length} armadilhas no talhão ${talhaoId}`);
+
+      const newLayers: any[] = [];
+
+      uniqueArmadilhas.forEach((a: any) => {
+        if (a.latitude == null || a.longitude == null) {
+          console.warn(`⚠️ Armadilha ${a.id} sem coordenadas`);
+          return;
+        }
+
+        const isAusencia = a.ausencia || false;
+        
+        // 🔥 NOVO: Ícone profissional de armadilha
+        const svg = `
+          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="armadilha-marker-container">
+            <!-- Sombra -->
+            <ellipse cx="16" cy="37" rx="8" ry="2" fill="rgba(0,0,0,0.2)"/>
+            
+            <!-- Pin principal -->
+            <path d="M16 2C10.477 2 6 6.477 6 12C6 18.5 16 36 16 36C16 36 26 18.5 26 12C26 6.477 21.523 2 16 2Z" 
+                  fill="${isAusencia ? '#94a3b8' : '#f59e0b'}" 
+                  stroke="#ffffff" 
+                  stroke-width="2"/>
+            
+            <!-- Ícone de armadilha -->
+            ${isAusencia ? `
+              <!-- X para ausência -->
+              <line x1="12" y1="10" x2="20" y2="18" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="20" y1="10" x2="12" y2="18" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+            ` : `
+              <!-- Armadilha ativa -->
+              <rect x="12" y="9" width="8" height="10" rx="1" fill="#ffffff" opacity="0.9"/>
+              <circle cx="16" cy="14" r="2.5" fill="#f59e0b"/>
+              <line x1="16" y1="8" x2="16" y2="11" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+            `}
+          </svg>
+        `;
+        
+        const aIcon = L.divIcon({
+          html: svg,
+          className: 'armadilha-icon',
+          iconSize: [32, 40],
+          iconAnchor: [16, 40],
+          popupAnchor: [0, -40]
+        });
+
+        const amarker = L.marker([a.latitude, a.longitude], { icon: aIcon }).addTo(map);
+
+        const popupHtml = `
+          <div style="min-width:180px;font-family:system-ui,-apple-system,sans-serif">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <div style="width:10px;height:10px;border-radius:50%;background:${isAusencia ? '#94a3b8' : '#f59e0b'}"></div>
+              <strong style="font-size:14px;color:#111">${a.nome || 'Armadilha'}</strong>
+            </div>
+            ${a.observacao ? `<div style="font-size:12px;color:#444;margin-bottom:6px">${a.observacao}</div>` : ''}
+            <div style="font-size:11px;color:#666;display:flex;flex-direction:column;gap:4px;padding-top:6px;border-top:1px solid #e5e7eb">
+              <div><strong>Status:</strong> ${isAusencia ? '❌ Ausência' : '✅ Ativa'}</div>
+              <div><strong>ID:</strong> #${a.id}</div>
+            </div>
+          </div>
+        `;
+        
+        amarker.bindPopup(popupHtml);
+
+        if (typeof onArmadilhaClick === 'function') {
+          try {
+            amarker.on('click', () => onArmadilhaClick(a));
+          } catch (e) {
+            try {
+              (amarker as any).openPopup();
+            } catch (err) {}
+          }
+        }
+
+        try {
+          const el = (amarker as any).getElement && (amarker as any).getElement();
+          if (el && el.classList) {
+            el.classList.add('armadilha-bounce');
+          }
+        } catch (e) {}
+
+        newLayers.push(amarker);
+      });
+
+      // Salva as novas layers
+      armadilhaLayersRef.current.set(talhaoId, newLayers);
+      
+      console.log(`✅ ${newLayers.length} armadilhas renderizadas para talhão ${talhaoId}`);
+      
+      // 🔥 FIX: Retorna a contagem real de armadilhas
+      return newLayers.length;
+
+    } catch (err) {
+      console.error(`❌ Erro ao buscar armadilhas para talhão ${talhaoId}:`, err);
+      return 0;
+    }
+  }, [onArmadilhaClick]);
+
+  // 4. Renderiza talhões
   useEffect(() => {
     if (!mapInitialized || !mapInstanceRef.current) {
       console.log("⏳ Aguardando mapa inicializar para renderizar talhões...");
       return;
     }
 
-    console.log("🎨 RENDERIZANDO", talhoes.length, "TALHÕES - FORÇANDO ATUALIZAÇÃO");
+    console.log("🎨 RENDERIZANDO", talhoes.length, "TALHÕES");
 
     const L = (window as any).L;
     const { map, layers } = mapInstanceRef.current;
@@ -259,166 +415,140 @@ export function TalhaoMap({
     layers.forEach((layer: any) => {
       try {
         map.removeLayer(layer);
-      } catch (e) {
-        console.warn("Layer já removida:", e);
-      }
+      } catch (e) {}
     });
     mapInstanceRef.current.layers = [];
 
-    // Se não tem talhões, retorna
     if (!talhoes.length) {
       console.log("📭 Nenhum talhão para renderizar");
       return;
     }
 
-    talhoes.forEach((talhao) => {
-      if (!talhao.boundary?.length || !talhao.center) return;
-
-      const color = getStatusColor(talhao.status);
-
-      // Polígono
-      const polygon = L.polygon(talhao.boundary, {
-        color,
-        fillColor: color,
-        fillOpacity: 0.4,
-        weight: 2,
-      }).addTo(map);
-
-      if (onTalhaoClick) {
-        polygon.on("click", () => onTalhaoClick(talhao));
+    // 🔥 FIX: Primeiro busca a contagem real de armadilhas
+    (async () => {
+      const newCounts = new Map<number, number>();
+      
+      for (const talhao of talhoes) {
+        const count = await fetchAndRenderArmadilhasForTalhao(talhao.id);
+        newCounts.set(talhao.id, count);
       }
+      
+      setArmadilhaCountsByTalhao(newCounts);
+      
+      // Agora renderiza os talhões com as contagens corretas
+      talhoes.forEach((talhao) => {
+        if (!talhao.boundary?.length || !talhao.center) return;
 
-      mapInstanceRef.current.layers.push(polygon);
+        const color = getStatusColor(talhao.status);
+        const realCount = newCounts.get(talhao.id) || 0;
 
-      // Label (inclui contador de armadilhas)
-      const labelHtml = `
-        <div style="border:2px solid ${color};background:rgba(255,255,255,0.95);padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.12);white-space:nowrap;">
-          <div style="color:#15803d;font-weight:700;">${talhao.nome}</div>
-          <div style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:#374151;margin-top:4px;">
-            <div>${talhao.totalPragas ?? 0} pragas</div>
-            <div style="background:#ecfeff;border:1px solid #bffaf0;padding:3px 8px;border-radius:999px;font-weight:700;color:#065f46;font-size:11px;">${talhao.armadilhasAtivas ?? 0} 🪤</div>
+        // Polígono
+        const polygon = L.polygon(talhao.boundary, {
+          color,
+          fillColor: color,
+          fillOpacity: 0.4,
+          weight: 2,
+        }).addTo(map);
+
+        if (onTalhaoClick) {
+          polygon.on("click", () => onTalhaoClick(talhao));
+        }
+
+        mapInstanceRef.current.layers.push(polygon);
+
+        // 🔥 FIX: Label com contador REAL de armadilhas
+        const labelHtml = `
+          <div style="border:2px solid ${color};background:rgba(255,255,255,0.95);padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.12);white-space:nowrap;">
+            <div style="color:#15803d;font-weight:700;">${talhao.nome}</div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;color:#374151;margin-top:4px;">
+              <div>${talhao.totalPragas ?? 0} pragas</div>
+              <div style="background:#ecfeff;border:1px solid #bffaf0;padding:3px 8px;border-radius:999px;font-weight:700;color:#065f46;font-size:11px;">${realCount} 🪤</div>
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      const labelIcon = L.divIcon({
-        className: 'talhao-label',
-        html: labelHtml,
-        iconSize: [120, 45],
-        iconAnchor: [60, 22],
+        const labelIcon = L.divIcon({
+          className: 'talhao-label',
+          html: labelHtml,
+          iconSize: [120, 45],
+          iconAnchor: [60, 22],
+        });
+
+        const marker = L.marker(talhao.center, {
+          icon: labelIcon,
+          interactive: false,
+        }).addTo(map);
+
+        mapInstanceRef.current.layers.push(marker);
       });
 
-      const marker = L.marker(talhao.center, {
-        icon: labelIcon,
-        interactive: false,
-      }).addTo(map);
+      // Centraliza no último talhão
+      const ultimo = talhoes[talhoes.length - 1];
+      const hasValidCenter = (() => {
+        if (!ultimo || !ultimo.center) return false;
+        const c: any = ultimo.center;
+        if (Array.isArray(c)) return c.length === 2 && c[0] != null && c[1] != null;
+        return c && typeof c.lat === 'number' && typeof c.lng === 'number';
+      })();
 
-      mapInstanceRef.current.layers.push(marker);
-    });
-
-    const fetchAndRenderArmadilhasForTalhao = async (talhaoId: number) => {
-      try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-
-        // remove existing armadilha layers for this talhao
-        mapInstanceRef.current.armadilhaLayers = mapInstanceRef.current.armadilhaLayers || [];
-        mapInstanceRef.current.armadilhaLayers.forEach((l: any) => {
-          try { map.removeLayer(l); } catch (e) {}
-        });
-        mapInstanceRef.current.armadilhaLayers = [];
-
-        const params = new URLSearchParams();
-        params.set('talhaoId', String(talhaoId));
-        const res = await fetch(`${API_URL}/armadilhas?${params.toString()}`, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
-        });
-        if (!res.ok) return;
-        const armadilhas = await res.json();
-        armadilhas.forEach((a: any) => {
-          if (a.latitude == null || a.longitude == null) return;
-          const color = a.ausencia ? '#9ca3af' : '#f59e0b';
-          const svg = ` <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C12 2 18 7 18 11C18 15 14.4183 20.1213 12 22C9.58172 20.1213 6 15 6 11C6 7 12 2 12 2Z" fill="${color}" stroke="#064e3b" stroke-width="0.5"/><circle cx="12" cy="10" r="2" fill="#064e3b"/></svg>`;
-          const aIcon = L.divIcon({ html: svg, className: 'armadilha-icon', iconSize: [28, 28], iconAnchor: [14, 28] });
-          const amarker = L.marker([a.latitude, a.longitude], { icon: aIcon }).addTo(map);
-          const popupHtml = `<div style="min-width:160px"><strong>${a.nome || 'Armadilha'}</strong><div style="font-size:12px;color:#444">${a.observacao || ''}</div><div style=\"font-size:12px;color:#666;margin-top:6px\">Ausência: ${a.ausencia ? 'Sim' : 'Não'}</div></div>`;
-          amarker.bindPopup(popupHtml);
-          // quando clicada, abre o painel de armadilha se o handler foi fornecido
-          if (typeof onArmadilhaClick === 'function') {
-            try {
-              amarker.on('click', () => onArmadilhaClick(a));
-            } catch (e) {
-              // fallback para abrir popup
-              try { (amarker as any).openPopup(); } catch (err) {}
-            }
-          }
-          // add bounce animation class to marker element
-          try {
-            const el = (amarker as any).getElement && (amarker as any).getElement();
-            if (el && el.classList) {
-              el.classList.add('armadilha-bounce');
-            }
-          } catch (e) {}
-          mapInstanceRef.current.armadilhaLayers.push(amarker);
-        });
-      } catch (err) {
-        console.warn('Erro ao buscar armadilhas para talhão', talhaoId, err);
-      }
-    };
-
-    // render all talhões armadilhas
-    (async () => {
-      try {
-        for (const t of talhoes) {
-          await fetchAndRenderArmadilhasForTalhao(t.id);
+      if (hasValidCenter) {
+        try {
+          map.setView(ultimo.center, 17, { animate: true });
+        } catch (e) {
+          console.warn('Não foi possível centralizar no talhão:', e);
         }
-      } catch (err) {
-        console.warn('Erro ao renderizar armadilhas:', err);
       }
     })();
 
-    // real-time update: escuta evento global
-    const onArmadilhaChanged = (ev: any) => {
+  }, [mapInitialized, talhoes, onTalhaoClick, fetchAndRenderArmadilhasForTalhao]);
+
+  // Event listener para mudanças em armadilhas
+  useEffect(() => {
+    const onArmadilhaChanged = async (ev: any) => {
+      console.log("🔄 Evento armadilha:changed recebido", ev?.detail);
+      
       const detail = ev?.detail;
       if (!detail) {
-        // refresh all
-        talhoes.forEach((t) => fetchAndRenderArmadilhasForTalhao(t.id));
+        console.log("🔄 Atualizando todas as armadilhas...");
+        const newCounts = new Map<number, number>();
+        for (const t of talhoes) {
+          const count = await fetchAndRenderArmadilhasForTalhao(t.id);
+          newCounts.set(t.id, count);
+        }
+        setArmadilhaCountsByTalhao(newCounts);
         return;
       }
+
       const talhaoId = detail.armadilha?.talhaoId || detail.talhaoId;
-      if (talhaoId) fetchAndRenderArmadilhasForTalhao(talhaoId);
-      else talhoes.forEach((t) => fetchAndRenderArmadilhasForTalhao(t.id));
+      if (talhaoId) {
+        console.log(`🔄 Atualizando armadilhas do talhão ${talhaoId}...`);
+        const count = await fetchAndRenderArmadilhasForTalhao(talhaoId);
+        setArmadilhaCountsByTalhao(prev => {
+          const newMap = new Map(prev);
+          newMap.set(talhaoId, count);
+          return newMap;
+        });
+      }
     };
+
     window.addEventListener('armadilha:changed', onArmadilhaChanged as any);
 
-    // Centraliza no último talhão (verifica centro válido)
-    const ultimo = talhoes[talhoes.length - 1];
-    const hasValidCenter = (() => {
-      if (!ultimo || !ultimo.center) return false;
-      const c: any = ultimo.center;
-      if (Array.isArray(c)) return c.length === 2 && c[0] != null && c[1] != null;
-      return c && typeof c.lat === 'number' && typeof c.lng === 'number';
-    })();
+    return () => {
+      window.removeEventListener('armadilha:changed', onArmadilhaChanged as any);
+    };
+  }, [talhoes, fetchAndRenderArmadilhasForTalhao]);
 
-    if (hasValidCenter) {
-      try {
-        map.setView(ultimo.center, 17, { animate: true });
-      } catch (e) {
-        console.warn('Não foi possível centralizar no talhão:', e);
-      }
-    }
-  }, [mapInitialized, talhoes, onTalhaoClick]);
-
-  // cleanup for armadilha event listener when component unmounts
+  // Cleanup
   useEffect(() => {
     return () => {
-      try {
-        (mapInstanceRef.current?.armadilhaLayers || []).forEach((l: any) => {
-          try { mapInstanceRef.current.map.removeLayer(l); } catch (e) {}
+      armadilhaLayersRef.current.forEach((layers) => {
+        layers.forEach((l) => {
+          try {
+            mapInstanceRef.current?.map?.removeLayer(l);
+          } catch (e) {}
         });
-      } catch (e) {}
+      });
+      armadilhaLayersRef.current.clear();
     };
   }, []);
 

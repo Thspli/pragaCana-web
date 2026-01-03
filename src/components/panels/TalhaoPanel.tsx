@@ -8,7 +8,6 @@ import {
   Calendar, 
   Bug, 
   Target, 
-  TrendingUp,
   FileText,
   BarChart3,
   Download,
@@ -21,17 +20,17 @@ import { Talhao } from "../../hooks/useTalhoes";
 
 interface TalhaoPanelProps {
   talhao: Talhao | null;
+  armadilhaRealCount?: number | null;
   onClose: () => void;
 }
 
-export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
+export function TalhaoPanel({ talhao, armadilhaRealCount, onClose }: TalhaoPanelProps) {
   const [activeTab, setActiveTab] = useState<"info" | "graficos" | "relatorios">("info");
   const [isEditing, setIsEditing] = useState(false);
   const [editedNome, setEditedNome] = useState("");
   const [editedStatus, setEditedStatus] = useState<"baixo" | "medio" | "alto" | "critico">("baixo");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Inicializa valores de edição quando abre o modo de edição
   React.useEffect(() => {
     if (talhao && isEditing) {
       setEditedNome(talhao.nome);
@@ -57,8 +56,12 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
   };
 
   const statusInfo = getStatusColor(isEditing ? editedStatus : talhao.status);
+  
+  // 🔥 NOVO: Usa a contagem real se disponível, senão usa do banco
+  const displayArmadilhaCount = armadilhaRealCount !== null && armadilhaRealCount !== undefined 
+    ? armadilhaRealCount 
+    : (talhao.armadilhasAtivas ?? 0);
 
-  // Função para editar talhão
   const handleEdit = async () => {
     if (!editedNome.trim()) {
       alert("⚠️ O nome não pode estar vazio!");
@@ -86,8 +89,6 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
 
       alert("✅ Talhão atualizado com sucesso!");
       setIsEditing(false);
-      
-      // Recarrega a página para atualizar os dados
       window.location.reload();
     } catch (error) {
       console.error("Erro ao editar talhão:", error);
@@ -95,7 +96,6 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
     }
   };
 
-  // Função para deletar talhão
   const handleDelete = async () => {
     const confirmacao = window.confirm(
       `⚠️ ATENÇÃO!\n\nTem certeza que deseja excluir o talhão "${talhao.nome}"?\n\nEsta ação não pode ser desfeita!`
@@ -120,8 +120,6 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
 
       alert("✅ Talhão excluído com sucesso!");
       onClose();
-      
-      // Recarrega a página para atualizar a lista
       window.location.reload();
     } catch (error) {
       console.error("Erro ao deletar talhão:", error);
@@ -328,11 +326,11 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
               animate={{ opacity: 1, y: 0 }}
               style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}
             >
-              {/* Estatísticas Principais */}
+              {/* Estatísticas Principais - SEM DENSIDADE */}
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
+                  gridTemplateColumns: "1fr 1fr 1fr",
                   gap: "1rem",
                 }}
               >
@@ -348,21 +346,13 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
                   value={talhao.totalPragas ?? 0}
                   color="#ef4444"
                 />
+                {/* 🔥 NOVO: Card de armadilhas com contagem real */}
                 <StatCard
                   icon={<Target size={24} />}
                   label="Armadilhas"
-                  value={talhao.armadilhasAtivas ?? 0}
+                  value={displayArmadilhaCount}
                   color="#22c55e"
-                />
-                <StatCard
-                  icon={<TrendingUp size={24} />}
-                  label="Densidade"
-                  value={
-                    talhao.area && talhao.totalPragas
-                      ? `${(talhao.totalPragas / talhao.area).toFixed(1)}/ha`
-                      : "N/A"
-                  }
-                  color="#f59e0b"
+                  badge={armadilhaRealCount !== null && armadilhaRealCount !== undefined ? "🔄 Atualizado" : undefined}
                 />
               </div>
 
@@ -588,7 +578,7 @@ export function TalhaoPanel({ talhao, onClose }: TalhaoPanelProps) {
 }
 
 // Componentes auxiliares
-function StatCard({ icon, label, value, color }: any) {
+function StatCard({ icon, label, value, color, badge }: any) {
   return (
     <div
       style={{
@@ -601,8 +591,24 @@ function StatCard({ icon, label, value, color }: any) {
         gap: "0.5rem",
         alignItems: "center",
         textAlign: "center",
+        position: "relative",
       }}
     >
+      {badge && (
+        <div style={{
+          position: "absolute",
+          top: "0.5rem",
+          right: "0.5rem",
+          fontSize: "0.65rem",
+          background: "#dcfce7",
+          color: "#15803d",
+          padding: "0.2rem 0.4rem",
+          borderRadius: "0.25rem",
+          fontWeight: 600,
+        }}>
+          {badge}
+        </div>
+      )}
       <div style={{ color }}>{icon}</div>
       <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#1f2937" }}>{value}</div>
       <div style={{ fontSize: "0.75rem", color: "#6b7280", fontWeight: 600 }}>{label}</div>
